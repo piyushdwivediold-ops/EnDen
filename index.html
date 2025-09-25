@@ -27,6 +27,14 @@
             background-color: #b3b3b3;
             border-radius: 4px;
         }
+        .footer-btn {
+            color: #b3b3b3;
+            transition: color 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        .footer-btn.active {
+            color: #6a0dad; /* Purple for active */
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
@@ -68,23 +76,30 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, onSnapshot, collection, query, where, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Use custom log level for debugging
         setLogLevel('debug');
 
-        // Initial setup for global variables provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof _firebase_config !== 'undefined' ? JSON.parse(_firebase_config) : {};
-        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // ----------------- IMPORTANT: YOUR FIREBASE CONFIGURATION GOES HERE -----------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEUv_pD6rwvqDPAAO-Ls64Urg7RYmNNCg",
+            authDomain: "enden-2145b.firebaseapp.com",
+            projectId: "enden-2145b",
+            storageBucket: "enden-2145b.firebasestorage.app",
+            messagingSenderId: "998406404938",
+            appId: "1:998406404938:web:3510532022fe212bb45fb3"
+        };
+        // ----------------------------------------------------------------------------------
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         let userId;
+        const appId = firebaseConfig.projectId;
 
         // App state and content
         let currentPage = 'feed';
@@ -303,17 +318,12 @@
         // Firebase Auth and Firestore setup
         const setupFirebaseAndListeners = async () => {
             try {
-                // Use custom token if available, otherwise sign in anonymously
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                userId = auth.currentUser.uid;
+                // Sign in anonymously for the demo
+                const userCredential = await signInAnonymously(auth);
+                userId = userCredential.user.uid;
 
                 // Listen for real-time updates on the 'rankings' collection
-                const collectionRef = collection(db, /artifacts/${appId}/public/data/rankings);
+                const collectionRef = collection(db, msme-connect/public/rankings);
                 onSnapshot(collectionRef, (snapshot) => {
                     const fetchedRankings = [];
                     snapshot.forEach(doc => {
