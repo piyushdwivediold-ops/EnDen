@@ -77,7 +77,7 @@
 
         // Initial setup for global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfig = typeof _firebase_config !== 'undefined' ? JSON.parse(_firebase_config) : {};
         const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Initialize Firebase
@@ -275,7 +275,7 @@
         window.changePage = (page) => {
             currentPage = page;
             footerBtns.forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`.footer-btn[onclick="changePage('${page}')"]`).classList.add('active');
+            document.querySelector(.footer-btn[onclick="changePage('${page}')"]).classList.add('active');
             renderPage();
         };
 
@@ -313,7 +313,7 @@
                 userId = auth.currentUser.uid;
 
                 // Listen for real-time updates on the 'rankings' collection
-                const collectionRef = collection(db, `/artifacts/${appId}/public/data/rankings`);
+                const collectionRef = collection(db, /artifacts/${appId}/public/data/rankings);
                 onSnapshot(collectionRef, (snapshot) => {
                     const fetchedRankings = [];
                     snapshot.forEach(doc => {
@@ -344,7 +344,7 @@
                 
             } catch (error) {
                 console.error("Firebase setup failed:", error);
-                contentArea.innerHTML = `<div class="p-6 text-center text-red-500">Failed to connect to the database. Please try again.</div>`;
+                contentArea.innerHTML = <div class="p-6 text-center text-red-500">Failed to connect to the database. Please try again.</div>;
             }
         };
 
