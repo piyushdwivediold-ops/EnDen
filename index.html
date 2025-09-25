@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSME Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        /* Custom scrollbar for aesthetic purposes */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #b3b3b3;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <div id="app" class="relative w-full max-w-sm h-[80vh] sm:h-[90vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        
+        <!-- Header Section -->
+        <header id="header" class="flex justify-between items-center p-4 border-b border-gray-200">
+            <h1 class="text-xl font-bold text-gray-800 tracking-tight">MSME Connect</h1>
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-paper-plane text-xl text-gray-700"></i>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="content-area" class="flex-grow overflow-y-auto">
+            <!-- Content will be injected here by JavaScript -->
+        </main>
+
+        <!-- Footer Navigation -->
+        <footer id="footer" class="flex justify-around items-center h-14 bg-white border-t border-gray-200">
+            <button onclick="changePage('feed')" class="footer-btn active">
+                <i class="fas fa-home text-2xl"></i>
+            </button>
+            <button onclick="changePage('search')" class="footer-btn">
+                <i class="fas fa-search text-2xl"></i>
+            </button>
+            <button onclick="changePage('create')" class="footer-btn">
+                <i class="fas fa-plus-square text-2xl"></i>
+            </button>
+            <button onclick="changePage('ranking')" class="footer-btn">
+                <i class="fas fa-chart-bar text-2xl"></i>
+            </button>
+            <button onclick="changePage('profile')" class="footer-btn">
+                <i class="fas fa-user-circle text-2xl"></i>
+            </button>
+        </footer>
+    </div>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, onSnapshot, collection, query, where, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Use custom log level for debugging
+        setLogLevel('debug');
+
+        // Initial setup for global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId;
+
+        // App state and content
+        let currentPage = 'feed';
+        const contentArea = document.getElementById('content-area');
+        const footerBtns = document.querySelectorAll('.footer-btn');
+
+        // Dummy data for the feed
+        const dummyPosts = [
+            {
+                user: "InnovateTech",
+                location: "New Delhi, India",
+                image: "https://placehold.co/400x400/C8B8F8/ffffff?text=Tech+Innovation",
+                description: "Excited to share our latest product launch! We're changing the game in sustainable tech. #sustainability #tech #startup",
+                likes: 125,
+                comments: 32,
+                profilePic: "https://placehold.co/40x40/7A44E8/ffffff?text=IT"
+            },
+            {
+                user: "GreenHarvest",
+                location: "Bengaluru, India",
+                image: "https://placehold.co/400x400/A0D8FF/ffffff?text=Organic+Farming",
+                description: "Our first harvest of organic produce is here! Proud to support local farmers and healthy eating. #organic #farming #msme",
+                likes: 89,
+                comments: 15,
+                profilePic: "https://placehold.co/40x40/4169E1/ffffff?text=GH"
+            },
+            {
+                user: "ArtisanCrafts",
+                location: "Jaipur, India",
+                image: "https://placehold.co/400x400/9370DB/ffffff?text=Handmade+Goods",
+                description: "Showcasing our new line of handmade ceramics. Each piece is crafted with love and tradition. #handmade #crafts #pottery",
+                likes: 210,
+                comments: 55,
+                profilePic: "https://placehold.co/40x40/6A5ACD/ffffff?text=AC"
+            },
+        ];
+
+        // Function to render the feed page
+        const renderFeed = () => {
+            let feedHtml = `
+                <!-- Stories Section -->
+                <div class="px-2 pt-4 flex space-x-2 overflow-x-auto border-b border-gray-200 pb-4 mb-4">
+                    <div class="flex-shrink-0 flex flex-col items-center">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center">
+                            <i class="fas fa-plus text-white text-xl"></i>
+                        </div>
+                        <span class="text-xs text-gray-600 mt-1">Your Story</span>
+                    </div>
+                    ${['MSME1', 'MSME2', 'MSME3', 'MSME4', 'MSME5'].map((name) => `
+                        <div class="flex-shrink-0 flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-purple-500 to-blue-500">
+                                <img src="https://placehold.co/60x60/${Math.floor(Math.random()*16777215).toString(16)}/ffffff?text=${name.charAt(0)}${name.charAt(1)}" alt="${name}" class="w-full h-full object-cover rounded-full border-2 border-white">
+                            </div>
+                            <span class="text-xs text-gray-600 mt-1">${name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Posts Section -->
+                ${dummyPosts.map(post => `
+                    <div class="bg-white rounded-lg shadow-sm mb-4">
+                        <div class="flex items-center p-4">
+                            <img src="${post.profilePic}" alt="${post.user}" class="w-10 h-10 rounded-full mr-3 border-2 border-purple-500">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${post.user}</h3>
+                                <p class="text-xs text-gray-500">${post.location}</p>
+                            </div>
+                            <div class="ml-auto">
+                                <i class="fas fa-ellipsis-h text-gray-400"></i>
+                            </div>
+                        </div>
+                        <img src="${post.image}" alt="Post image" class="w-full h-auto object-cover">
+                        <div class="p-4">
+                            <div class="flex items-center space-x-4 text-xl mb-2">
+                                <i class="far fa-heart text-gray-600 hover:text-red-500 transition"></i>
+                                <i class="far fa-comment text-gray-600 hover:text-blue-500 transition"></i>
+                                <i class="fas fa-paper-plane text-gray-600 hover:text-blue-500 transition"></i>
+                            </div>
+                            <p class="text-sm text-gray-800 font-semibold mb-1">${post.likes} likes</p>
+                            <p class="text-sm text-gray-600">
+                                <span class="font-semibold text-gray-800">${post.user}</span> ${post.description}
+                            </p>
+                            <p class="text-xs text-gray-400 mt-2">View all ${post.comments} comments</p>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+            contentArea.innerHTML = feedHtml;
+        };
+
+        // Function to render the search page
+        const renderSearch = () => {
+            const searchHtml = `
+                <div class="p-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search MSMEs, investors, tags..." class="w-full bg-gray-100 rounded-lg py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <div class="mt-4 grid grid-cols-3 gap-1">
+                        ${[...Array(9)].map((_, i) => `
+                            <div class="aspect-square bg-gray-200 flex items-center justify-center text-gray-500 text-sm rounded-lg">
+                                <p>Discover ${i + 1}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            contentArea.innerHTML = searchHtml;
+        };
+
+        // Function to render the create (upload) page
+        const renderCreate = () => {
+            const createHtml = `
+                <div class="flex flex-col items-center justify-center p-4 h-full">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-6">
+                        <i class="fas fa-upload text-white text-3xl"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-2 text-gray-800">Upload Your Stats</h2>
+                    <p class="text-sm text-center text-gray-500 mb-6">Share your latest business metrics to build your portfolio and attract investors.</p>
+                    <button onclick="alert('Upload functionality is not implemented yet.')" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300">
+                        Select from Gallery
+                    </button>
+                    <p class="mt-4 text-xs text-gray-400">File types: JPG, PNG, PDF</p>
+                </div>
+            `;
+            contentArea.innerHTML = createHtml;
+        };
+
+        // Function to render the ranking page
+        let rankings = [];
+        const renderRanking = () => {
+            const sortedRankings = rankings.sort((a, b) => b.growth - a.growth);
+            const rankingHtml = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4 text-center text-purple-700">MSME Growth Rankings</h2>
+                    <p class="text-sm text-center text-gray-600 mb-6">See how your business compares to others in the community!</p>
+                    <div class="space-y-4">
+                        ${sortedRankings.map((msme, index) => `
+                            <div class="flex items-center bg-gray-50 p-4 rounded-lg shadow-sm transform hover:scale-105 transition-transform duration-200">
+                                <span class="font-bold text-xl w-8 text-center text-blue-600">${index + 1}</span>
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg mr-4">
+                                    ${msme.name.charAt(0)}${msme.name.charAt(1)}
+                                </div>
+                                <div class="flex-grow">
+                                    <h3 class="font-semibold text-gray-800">${msme.name}</h3>
+                                    <p class="text-xs text-gray-500">Growth: <span class="font-semibold text-green-600">${msme.growth}%</span></p>
+                                </div>
+                                <div class="text-sm font-bold text-gray-700">
+                                    <p>Rank ${index + 1}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            contentArea.innerHTML = rankingHtml;
+        };
+
+        // Function to render the profile page
+        const renderProfile = () => {
+            const profileHtml = `
+                <div class="flex flex-col items-center p-6">
+                    <div class="w-28 h-28 rounded-full bg-gray-200 mb-4 flex items-center justify-center text-gray-600 text-6xl">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Your Profile</h2>
+                    <p class="text-sm text-gray-500 break-all text-center mt-2">${userId || 'Loading...'}</p>
+                    <div class="mt-6 flex justify-around w-full max-w-xs">
+                        <div class="flex flex-col items-center">
+                            <span class="font-bold text-lg text-gray-800">0</span>
+                            <span class="text-xs text-gray-500">Posts</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="font-bold text-lg text-gray-800">0</span>
+                            <span class="text-xs text-gray-500">Followers</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="font-bold text-lg text-gray-800">0</span>
+                            <span class="text-xs text-gray-500">Following</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            contentArea.innerHTML = profileHtml;
+        };
+        
+        // Function to change the active page
+        window.changePage = (page) => {
+            currentPage = page;
+            footerBtns.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.footer-btn[onclick="changePage('${page}')"]`).classList.add('active');
+            renderPage();
+        };
+
+        // Function to render the current page
+        const renderPage = () => {
+            switch (currentPage) {
+                case 'feed':
+                    renderFeed();
+                    break;
+                case 'search':
+                    renderSearch();
+                    break;
+                case 'create':
+                    renderCreate();
+                    break;
+                case 'ranking':
+                    renderRanking();
+                    break;
+                case 'profile':
+                    renderProfile();
+                    break;
+            }
+        };
+
+        // Firebase Auth and Firestore setup
+        const setupFirebaseAndListeners = async () => {
+            try {
+                // Use custom token if available, otherwise sign in anonymously
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                userId = auth.currentUser.uid;
+
+                // Listen for real-time updates on the 'rankings' collection
+                const collectionRef = collection(db, `/artifacts/${appId}/public/data/rankings`);
+                onSnapshot(collectionRef, (snapshot) => {
+                    const fetchedRankings = [];
+                    snapshot.forEach(doc => {
+                        fetchedRankings.push({ id: doc.id, ...doc.data() });
+                    });
+                    rankings = fetchedRankings;
+                    if (currentPage === 'ranking') {
+                        renderRanking();
+                    }
+                }, (error) => {
+                    console.error("Error fetching rankings:", error);
+                });
+
+                // Add some dummy data if the collection is empty
+                const initialDocs = await getDocs(collectionRef);
+                if (initialDocs.empty) {
+                    await Promise.all([
+                        addDoc(collectionRef, { name: "Quantum Sprout", growth: 45 }),
+                        addDoc(collectionRef, { name: "Synergy Solutions", growth: 82 }),
+                        addDoc(collectionRef, { name: "Eco Innovators", growth: 60 }),
+                        addDoc(collectionRef, { name: "Market Maestros", growth: 95 }),
+                        addDoc(collectionRef, { name: "Local Legends", growth: 71 }),
+                    ]);
+                }
+
+                // Initial render of the app
+                renderPage();
+                
+            } catch (error) {
+                console.error("Firebase setup failed:", error);
+                contentArea.innerHTML = `<div class="p-6 text-center text-red-500">Failed to connect to the database. Please try again.</div>`;
+            }
+        };
+
+        // Initialize the app on window load
+        window.onload = setupFirebaseAndListeners;
+    </script>
+</body>
+</html>
